@@ -15,6 +15,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <style>
+        h3 {
+            text-decoration: underline;
+            margin-top: 0;
+        }
         #download {
             font-family: 'Futura', sans-serif;
             display: flex;
@@ -137,10 +141,10 @@
 <body>
     <div id="capture">
         <!-- Page Title -->
-        <h1 style="color: #cc0000;">WhatsApp Chat Analyzer</h1>
+        <h1 style="color: #cc0000;margin-top: 0px;">WhatsApp Chat Analyzer</h1>
 
         <!-- Total Messages Display -->
-        <h3>Total Messages: <span id="totalMessages"></span></h3>
+        <h3 style="text-decoration: none;">Total Messages: <span id="totalMessages"></span></h3>
 
         <!-- Pie Chart for Participants -->
         <div id="chart-container">
@@ -150,6 +154,7 @@
         <hr>
 
         <!-- Date Range Display -->
+        <h3>Duration</h3>
         <div class="date-container">
             <div id="startDate">From: </div>
             <div id="endDate">To: </div>
@@ -172,9 +177,10 @@
         <hr>
 
         <!-- Average Message and Response Time -->
+        <h3>Average</h3>
         <div class="duration-container">
-            <div class="duration-item">Average Messages Per Day: <span id="avgMessagesPerDay"></span></div>
-            <div class="duration-item">Average Response Time: <span id="avgResponseTime"></span></div>
+            <div class="duration-item">Messages Per Day: <span id="avgMessagesPerDay"></span></div>
+            <div class="duration-item">Response Time: <span id="avgResponseTime"></span></div>
         </div>
 
         <hr>
@@ -182,7 +188,7 @@
         <!-- Activity Distribution Progress Bar -->
         
             <h3>Activity Distribution</h3>
-            <h3>Morning - Afternoon - Evening - Night</h3>
+            <h3 style="text-decoration: none;">Morning - Afternoon - Evening - Night</h3>
             <div class="progress-container">
                 <div id="progressBar" class="progress-bar"></div>
             </div>
@@ -244,8 +250,8 @@
     const normalizedActiveDuration = normalizeDays(activeDays);
 
     // Display normalized durations
-    document.getElementById('normalizedActiveDuration').textContent = `Active Duration: ${normalizedActiveDuration}`;
-    document.getElementById('normalizedTotalDuration').textContent = `Total Duration: ${normalizedTotalDuration}`;
+    document.getElementById('normalizedActiveDuration').textContent = `Active: ${normalizedActiveDuration}`;
+    document.getElementById('normalizedTotalDuration').textContent = `Total: ${normalizedTotalDuration}`;
 
     // Display average messages per day and response time
     document.getElementById('avgMessagesPerDay').textContent = data.averageMessagesPerDay;
