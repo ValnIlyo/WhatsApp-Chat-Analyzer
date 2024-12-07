@@ -1,0 +1,42 @@
+/* Root Variables */
+:root {
+    --red: #CC0000;
+    --green: #038C4f;
+    --white: #FFFFFF;
+    --green-hover: #025938;
+    --black: #000000;
+    --font-size-base: 1rem;
+    /* 16px default */
+    --font-size-caption: calc(var(--font-size-base) / 1.618);
+    --font-size-heading: calc(var(--font-size-base) * 1.5);
+    --font-size-title: calc(var(--font-size-base) * 2.5);
+}
+
+/* Custom Fonts */
+@font-face {
+    font-family: 'Futura';
+    src: url('../fonts/futura.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Literaturnaya';
+    src: url('../fonts/literaturnaya.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* General Reset */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: auto;
+    height: auto;
+    font-family: 'Literaturnaya', sans-serif;
+    background-color: var(--white);
+    color: var(--black);
+}

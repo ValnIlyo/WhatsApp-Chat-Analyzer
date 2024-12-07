@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chat Analyzer</title>
+
+    <!-- Favicon and External Stylesheet -->
+    <link rel="icon" type="image/svg+xml" href="wa.svg">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- External Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <style>
+        #download {
+            font-family: 'Futura', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: var(--green);
+            color: var(--white);
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            margin: 20px;
+            width: fit-content;
+        }
+
+        #capture {
+            padding: 20px 20px;
+        }
+
+        /* General Body Styling */
+        body {
+            font-family: Futura, sans-serif;
+            text-align: center;
+        }
+
+        /* Chart Container */
+        #chart-container {
+            width: 100%;
+            max-width: 300px;
+            margin: auto;
+        }
+
+        /* Progress Bar Container */
+        .progress-container {
+            width: 100%;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .total-progress {
+            height: 100%;
+            width: 100%;
+            background-color: #038C4f;
+            border-radius: 10px;
+        }
+
+        .active-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #cc0000;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Date & Duration Containers */
+        .duration-container {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+        }
+
+        .duration-item {
+            flex: 1;
+            font-weight: bold;
+        }
+
+        .date-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .avg-section {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        hr {
+            margin: 20px 0;
+            border: 1px solid #000000;
+        }
+
+        /* Progress Bar Styling */
+        .progress-bar {
+            display: flex;
+            height: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-segment {
+            height: 100%;
+            text-align: center;
+            color: var(--white);
+            line-height: 30px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="capture">
+        <!-- Page Title -->
+        <h1 style="color: #cc0000;">WhatsApp Chat Analyzer</h1>
+
+        <!-- Total Messages Display -->
+        <h3>Total Messages: <span id="totalMessages"></span></h3>
+
+        <!-- Pie Chart for Participants -->
+        <div id="chart-container">
+            <canvas id="participantsChart"></canvas>
+        </div>
+
+        <hr>
+
+        <!-- Date Range Display -->
+        <div class="date-container">
+            <div id="startDate">From: </div>
+            <div id="endDate">To: </div>
+        </div>
+
+        <!-- Active Progress Bar -->
+        <div class="progress-container">
+            <div class="total-progress">
+                <div class="active-progress" id="activeProgress" style="width: 0%;"></div>
+                <div class="progress-text" id="activeProgressText"></div>
+            </div>
+        </div>
+
+        <!-- Normalized Duration Display -->
+        <div class="duration-container">
+            <div class="duration-item" id="normalizedActiveDuration"></div>
+            <div class="duration-item" id="normalizedTotalDuration"></div>
+        </div>
+
+        <hr>
+
+        <!-- Average Message and Response Time -->
+        <div class="duration-container">
+            <div class="duration-item">Average Messages Per Day: <span id="avgMessagesPerDay"></span></div>
+            <div class="duration-item">Average Response Time: <span id="avgResponseTime"></span></div>
+        </div>
+
+        <hr>
+
+        <!-- Activity Distribution Progress Bar -->
+        
+            <h3>Activity Distribution</h3>
+            <h3>Morning - Afternoon - Evening - Night</h3>
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+       
+        </div>
+        <hr style="margin-top: 0;">
+    <div style="height: 50px;">
+        <center>
+            <div id="download" type="button">Download Result</div>
+        </center>
+    </div>
+</body>
+
+
+<script>
+    // Retrieve chat data from session storage
+    const data = JSON.parse(sessionStorage.getItem("chatData"));
+
+    // Extract participants and their message counts dynamically
+    const participants = Object.keys(data.participants);
+    const messageCounts = Object.values(data.participants);
+
+    // Calculate total messages
+    const totalMessages = messageCounts.reduce((sum, count) => sum + count, 0);
+    document.getElementById('totalMessages').textContent = totalMessages;  // Display total messages
+
+    // Date Range
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+
+    // Display start and end dates
+    document.getElementById('startDate').textContent = `From: ${startDate.toDateString()}`;
+    document.getElementById('endDate').textContent = `To: ${endDate.toDateString()}`;
+
+    // Calculate total and active days
+    const totalDays = data.totalDays;
+    const activeDays = data.activeDays;
+
+    // Calculate active days percentage and update progress bar
+    const activeDaysPercentage = (activeDays / totalDays) * 100;
+    document.getElementById('activeProgress').style.width = `${activeDaysPercentage}%`;
+    document.getElementById('activeProgressText').textContent = `${Math.round(activeDaysPercentage)}%`;
+
+    // Function to normalize days into years, months, and days
+    const normalizeDays = (days) => {
+        const years = Math.floor(days / 365);
+        const months = Math.floor((days % 365) / 30);
+        const remainingDays = days % 30;
+
+        const normalizedString = [];
+        if (years > 0) normalizedString.push(`${years} year${years > 1 ? 's' : ''}`);
+        if (months > 0) normalizedString.push(`${months} month${months > 1 ? 's' : ''}`);
+        if (remainingDays > 0) normalizedString.push(`${remainingDays} day${remainingDays > 1 ? 's' : ''}`);
+
+        return normalizedString.length > 0 ? normalizedString.join(' ') : '0 days';
+    };
+
+    const normalizedTotalDuration = normalizeDays(totalDays);
+    const normalizedActiveDuration = normalizeDays(activeDays);
+
+    // Display normalized durations
+    document.getElementById('normalizedActiveDuration').textContent = `Active Duration: ${normalizedActiveDuration}`;
+    document.getElementById('normalizedTotalDuration').textContent = `Total Duration: ${normalizedTotalDuration}`;
+
+    // Display average messages per day and response time
+    document.getElementById('avgMessagesPerDay').textContent = data.averageMessagesPerDay;
+    document.getElementById('avgResponseTime').textContent = data.averageResponseTime;
+
+    // Function to generate random color
+    const generateRandomColor = () => {
+        const randomColor = Math.floor(Math.random() * 16777215).toString(16);
+        return `#${randomColor.padStart(6, '0')}`; // Ensure 6-digit hex color
+    };
+
+    // Generate color palette for participants
+    const generateColors = (count) => {
+        const baseColors = ['#cc0000', '#038c4f'];
+        const colors = [...baseColors];
+        for (let i = 2; i < count; i++) {
+            colors.push(generateRandomColor());
+        }
+        return colors;
+    };
+
+    // Generate colors for pie chart segments
+    const colors = generateColors(participants.length);
+
+    // Create the pie chart using Chart.js
+    const ctx1 = document.getElementById('participantsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'pie',
+        data: {
+            labels: participants,
+            datasets: [{
+                data: messageCounts,
+                backgroundColor: colors,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => {
+                            const total = messageCounts.reduce((sum, count) => sum + count, 0);
+                            const percentage = ((tooltipItem.raw / total) * 100).toFixed(2);
+                            return `${tooltipItem.label}: ${tooltipItem.raw} (${percentage}%)`;
+                        },
+                    },
+                },
+                datalabels: {
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((sum, count) => sum + count, 0);
+                        const percentage = ((value / total) * 100).toFixed(2);
+                        return `${percentage}%`;
+                    },
+                    color: '#fff',
+                    font: {
+                        weight: 'bold',
+                    },
+                },
+            },
+            title: {
+                display: true,
+                text: `Total Messages: ${totalMessages}`,
+            },
+        },
+        plugins: [ChartDataLabels],
+    });
+
+    // Activity data (Morning, Afternoon, Evening, Night)
+    const activityData = data.activityDistribution;
+    const totalActivity = Object.values(activityData).reduce((sum, value) => sum + value, 0);
+
+    // Activity segment colors
+    const activityColors = {
+        Morning: '#CC0000',
+        Afternoon: '#038C4f',
+        Evening: '#CC0000',
+        Night: '#038C4f'
+    };
+
+    // Reference to the progress bar container
+    const progressBar = document.getElementById('progressBar');
+
+    // Create progress bar segments dynamically for activity distribution
+    Object.entries(activityData).forEach(([label, value]) => {
+        const percentage = (value / totalActivity) * 100;
+        const segment = document.createElement('div');
+        segment.classList.add('progress-segment');
+        segment.style.width = `${percentage}%`;
+        segment.style.backgroundColor = activityColors[label];
+        segment.textContent = `${Math.round(percentage)}%`;
+        progressBar.appendChild(segment);
+    });
+
+    document.getElementById('download').addEventListener('click', function () {
+        // Use html2canvas to capture the specific div
+        html2canvas(document.getElementById('capture'))
+            .then(canvas => {
+                // Convert canvas to an image URL
+                const image = canvas.toDataURL('image/png');
+
+                // Create a temporary anchor element for downloading
+                const link = document.createElement('a');
+                link.download = 'screenshot.png'; // Set download file name
+                link.href = image; // Set the image URL
+                document.body.appendChild(link); // Append link to body
+                link.click(); // Simulate a click to trigger the download
+                document.body.removeChild(link); // Remove the link element
+            })
+    });
+
+</script>
+
+
+</html>

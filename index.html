@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="icon" type="image/svg+xml" href="wa.svg">
+    <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Chat Analyzer</title>
+    <style>
+        /* Centered Container */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 60px);
+            /* Footer height adjustment */
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Futura', sans-serif;
+            font-size: var(--font-size-title);
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Custom Button for File Input */
+        .custom-file-label {
+            font-family: 'Futura', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: var(--green);
+            color: var(--white);
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .custom-file-label img {
+            width: var(--font-size-title);
+            height: var(--font-size-title);
+        }
+
+        .custom-file-label:hover {
+            background-color: var(--green-hover);
+        }
+
+        .file-name {
+            font-size: var(--font-size-base);
+            font-style: italic;
+            color: var(--black);
+        }
+
+        /* SVG Animation */
+        .svg-wrapper {
+            width: var(--font-size-title);
+            height: var(--font-size-title);
+        }
+
+        .svg-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .svg-container.active {
+            display: block;
+            animation: orbit 6s ease-in-out infinite;
+        }
+
+        .svg-container img {
+            width: var(--font-size-title);
+            height: var(--font-size-title);
+        }
+
+        @keyframes orbit {
+            0% {
+                transform: translateX(0) translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateX(20px) translateY(30px) rotate(90deg);
+            }
+
+            50% {
+                transform: translateX(-40px) translateY(-20px) rotate(180deg);
+            }
+
+            75% {
+                transform: translateX(30px) translateY(10px) rotate(270deg);
+            }
+
+            100% {
+                transform: translateX(0) translateY(0) rotate(360deg);
+            }
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--white);
+            color: var(--black);
+            text-align: center;
+            font-family: 'Literaturnaya', sans-serif;
+            padding: 16px 16px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border-top: var(--black) solid 1px;
+        }
+
+        .footer a {
+            color: var(--black);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding-right: 16px;
+        }
+
+        .footer a img {
+            width: var(--font-size-heading);
+            height: var(--font-size-heading);
+        }
+
+        .footer a:hover {
+            color: var(--green);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Heading -->
+        <h1>WhatsApp Chat Analyzer</h1>
+        <!-- File Input -->
+        <input type="file" id="fileInput" accept=".zip, .txt">
+        <label for="fileInput" class="custom-file-label">
+            <img src="svgs/upload.svg" alt="Upload Icon">
+        </label>
+        <div class="file-name" id="fileName">No file selected</div>
+
+        <!-- Animated SVG -->
+        <div class="svg-wrapper">
+            <div class="svg-container" id="svgContainer">
+                <img src="svgs/search.svg" alt="Search Icon">
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <a href="https://www.instagram.com/valn_ilyo/" target="_blank">
+            <img src="svgs/insta.svg" alt="Instagram Icon">
+            @valn_ilyo
+        </a><a href="help.html" target="_blank">
+            <img src="svgs/help.svg" alt="Help Icon">
+            help
+        </a>
+    </footer>
+
+
+
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>// Select file input element
+    const fileInput = document.getElementById("fileInput");
+    const fileNameDisplay = document.getElementById("fileName");
+    const svgContainer = document.getElementById("svgContainer");
+
+    // Add change event listener to process selected file
+    fileInput.addEventListener("change", async () => {
+        try {
+            const selectedFile = fileInput.files[0];
+            if (!selectedFile) throw new Error("No file selected.");
+
+            fileNameDisplay.textContent = `${selectedFile.name}`;
+            svgContainer.classList.add("active");
+
+            if (selectedFile.name.endsWith(".txt")) {
+                await handleTextFile(selectedFile);
+            } else if (selectedFile.name.endsWith(".zip")) {
+                await handleZipFile(selectedFile);
+            } else {
+                throw new Error("Only .txt and .zip files are allowed.");
+            }
+        } catch (error) {
+            displayError(error.message);
+        }
+    });
+
+    // Handle processing of zip files
+    const handleZipFile = async (file) => {
+        try {
+            const zipContent = await JSZip.loadAsync(file);
+            const chatFile = Object.values(zipContent.files).find(f => /WhatsApp Chat with.*/i.test(f.name));
+            if (!chatFile) throw new Error("No WhatsApp chat file found in the zip.");
+            const chatBlob = await chatFile.async("blob");
+            await handleTextFile(chatBlob);
+        } catch (error) {
+            displayError(`Error processing zip file: ${error.message}`);
+        }
+    };
+
+    // Handle processing of text files
+    const handleTextFile = async (file) => {
+        try {
+            const fileReader = new FileReader();
+            fileReader.onload = (event) => analyzeChatContent(event.target.result);
+            fileReader.readAsText(file);
+        } catch (error) {
+            displayError(`Error reading text file: ${error.message}`);
+        }
+    };
+
+    // Main analysis function for chat content
+    const analyzeChatContent = (content) => {
+        try {
+            const dateTimePattern = detectDateTimePattern(content);
+            if (!dateTimePattern) throw new Error("Unable to detect date/time format in chat.");
+
+            const chatAnalytics = extractChatAnalytics(content, dateTimePattern);
+            sessionStorage.setItem("chatData", JSON.stringify(chatAnalytics));
+
+    // Redirect to the receiver page
+    window.location.href = "result.html";
+        } catch (error) {
+            displayError(error.message);
+        }
+    };
+
+    // Detect date and time pattern in chat content
+    const detectDateTimePattern = (content) => {
+        const patterns = [
+            /^((\d{1,2}\/\d{1,2}\/\d{2}),\s(\d{1,2}:\d{2}.[AP]M))/,
+            /^((\d{1,2}\/\d{1,2}\/\d{2}),\s(\d{2}:\d{2}))/,
+        ];
+        return patterns.find(pattern => pattern.test(content.split("\n")[0])) || null;
+    };
+
+    // Extract analytics data from chat messages
+    const extractChatAnalytics = (content, dateTimePattern) => {
+        const messagePattern = new RegExp(dateTimePattern.source + "\\s-\\s(.*?):", "gm");
+        const matches = [...content.matchAll(messagePattern)];
+
+        const analytics = {
+            startDate: new Date(matches[0][2]).toDateString(),
+            endDate: new Date(matches[matches.length - 1][2]).toDateString(),
+            totalDays: calculateDateDifference(matches[0][2], matches[matches.length - 1][2]),
+            activeDays: 0,
+            messageCount: matches.length,
+            participants: {},
+            activityDistribution: { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 }
+        };
+
+        processMessages(matches, analytics);
+        return analytics;
+    };
+
+    // Process individual messages and calculate analytics
+    const processMessages = (messages, analytics) => {
+        let previousDate = '';
+        let previousUser = '';
+        let previousTimestamp = null;
+        const responseTimes = [];
+
+        messages.forEach(match => {
+            const user = match[4];
+            const timestamp = new Date(Date.parse(match[2] + ' ' + match[3])).getTime();
+            const hour = new Date(timestamp).getHours();
+            const dateStr = new Date(timestamp).toDateString();
+
+            // Track active days
+            if (previousDate !== dateStr) {
+                analytics.activeDays++;
+                previousDate = dateStr;
+                previousTimestamp = timestamp;
+            }
+
+            // Calculate response time
+            if (previousUser !== user && previousTimestamp) {
+                responseTimes.push((timestamp - previousTimestamp) / 1000);
+            }
+
+            // Update participant message counts
+            analytics.participants[user] = (analytics.participants[user] || 0) + 1;
+
+            // Categorize activity based on time of day
+            if (hour >= 6 && hour < 12) analytics.activityDistribution.Morning++;
+            else if (hour >= 12 && hour < 18) analytics.activityDistribution.Afternoon++;
+            else if (hour >= 18 && hour < 22) analytics.activityDistribution.Evening++;
+            else analytics.activityDistribution.Night++;
+
+            previousUser = user;
+            previousTimestamp = timestamp;
+        });
+
+        analytics.participants = Object.fromEntries(
+            Object.entries(analytics.participants).sort(([, a], [, b]) => b - a)
+        );
+
+        analytics.averageResponseTime = formatTime(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length);
+        analytics.averageMessagesPerDay = Math.round(analytics.messageCount / analytics.activeDays);
+    };
+
+    // Calculate difference in days between two dates
+    const calculateDateDifference = (startDate, endDate) => {
+        const difference = Math.abs(Date.parse(endDate) - Date.parse(startDate));
+        return Math.floor(difference / (1000 * 60 * 60 * 24));
+    };
+
+    // Format time in hours, minutes, and seconds
+    const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.round(seconds % 60);
+        return `${hours}h ${minutes}m ${secs}s`;
+    };
+
+    
+
+    // Display error messages in an alert and console
+    const displayError = (message) => {
+        console.error(message);
+        alert(`Error: ${message}`);
+    };
+</script>
+
+</html>
